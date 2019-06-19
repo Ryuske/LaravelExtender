@@ -1,0 +1,38 @@
+{
+    "name": "ryuske/laravel-extender",
+    "type": "library",
+    "description": "Extend Laravel in a way that is helpful for me.",
+    "keywords": [
+        "laravel",
+        "helper",
+        "php",
+        "model"
+    ],
+    "homepage": "https://github.com/Ryuske/Laravel-Extender",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Kenyon Haliwell",
+            "email": "kenyon.jh@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+	"laravel/framework": ">=5.4"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Ryuske\\LaravelExtender\\": "src"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
