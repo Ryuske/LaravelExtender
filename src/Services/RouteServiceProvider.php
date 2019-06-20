@@ -3,7 +3,7 @@
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 
-abstract class RouteServiceProvider extends Illuminate\Foundation\Support\Providers\RouteServiceProvider {
+abstract class RouteServiceProvider extends \Illuminate\Foundation\Support\Providers\RouteServiceProvider {
   /**
    * BaseBusinessServiceProvider constructor.
    *
