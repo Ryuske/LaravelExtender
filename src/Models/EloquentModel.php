@@ -435,6 +435,9 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
           case 'between':
             $queryableModel = $queryableModel->whereBetween($field, $value['value']);
             break;
+          case 'raw':
+            $queryableModel = $queryableModel->whereRaw($value['statement'], $value['value']);
+            break;
           default:
             $queryableModel = $queryableModel->where($field, $value['operator'], $value['value']);
         }
