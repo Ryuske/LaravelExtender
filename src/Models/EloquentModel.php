@@ -73,7 +73,6 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
     if (method_exists($this, $method)) {
       return call_user_func_array([$this, $method], $parameters);
     }
-
     if (method_exists($this->_eloquent(), $method)) {
       return call_user_func_array([$this->_eloquent(), $method], $parameters);
     }
@@ -277,7 +276,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
     foreach ($model->toArray() as $field=>$value) {
       $setter = 'set' . str_replace('_', '', ucwords(ucwords($field, "-_ \t\r\n\f\v")));
 
-      if (method_exists($this, $setter)) {
+      try {
         /**
          * Call the setter method (->setSomeField) and pass the Eloquent property (->some_field) as the parameter
          */
@@ -288,7 +287,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
             $this->{$setter}($value);
           }
         }
-      }
+      } catch (MethodNotFound $exception) {}
     }
 
     /**
@@ -510,7 +509,11 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
    * @return NULL|\ReflectionType
    */
   protected function castToParameterType($method, $value, int $argument=0) {
-    $parameterType = (string) (new ReflectionParameter($method, $argument))->getType();
+    try {
+      $parameterType = (string) (new ReflectionParameter($method, $argument))->getType();
+    } catch (\ReflectionException $exception) {
+      $parameterType = '';
+    }
 
     if ($value instanceof $parameterType) {
       return $value;
