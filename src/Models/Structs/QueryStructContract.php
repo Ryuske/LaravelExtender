@@ -1,5 +1,7 @@
 <?php namespace Ryuske\LaravelExtender\Models\Structs;
 
+use Illuminate\Database\Eloquent\Model;
+
 interface QueryStructContract {
   /**
    * @return array
@@ -10,6 +12,11 @@ interface QueryStructContract {
    * @return array
    */
   public function getWith(): array;
+  
+  /**
+   * @return array
+   */
+  public function getJoins(): array;
 
   /**
    * @return bool
@@ -40,4 +47,9 @@ interface QueryStructContract {
    * @return string
    */
   public function getSum(): string;
+
+  /**
+   * @return Model
+   */
+  public function getEloquent();
 }

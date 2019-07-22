@@ -1,5 +1,7 @@
 <?php namespace Ryuske\LaravelExtender\Models\Structs;
 
+use Illuminate\Database\Eloquent\Model;
+
 trait QueryStructMethods {
   /**
    * @var array
@@ -10,6 +12,11 @@ trait QueryStructMethods {
    * @var array
    */
   private $_with          = [];
+
+  /**
+   * @var array
+   */
+  private $_joins         = [];
 
   /**
    * @var bool
@@ -42,6 +49,18 @@ trait QueryStructMethods {
   private $_sum          = '';
 
   /**
+   * @var Model
+   */
+  private $_eloquent;
+
+  /**
+   * @param Model $eloquentModel
+   */
+  public function __construct(Model $eloquentModel) {
+    $this->_eloquent = $eloquentModel;
+  }
+
+  /**
    * Used to return all the columns designed to be used by eloquents ->where() method
    *
    * @return array
@@ -57,6 +76,15 @@ trait QueryStructMethods {
    */
   public function getWith(): array {
     return $this->_with;
+  }
+
+  /**
+   * Used to return all the tabels to join in the current query
+   *
+   * @return array
+   */
+  public function getJoins(): array {
+    return $this->_joins;
   }
 
   /**
@@ -155,5 +183,22 @@ trait QueryStructMethods {
    */
   public function getSum(): string {
     return $this->_sum;
+  }
+
+  /**
+   * @return Model
+   */
+  public function getEloquent() {
+    return $this->_eloquent;
+  }
+
+  /**
+   * @param $eloquent
+   * @return self
+   */
+  public function updateEloquent($eloquent) {
+    $this->_eloquent = $eloquent;
+
+    return $this;
   }
 }

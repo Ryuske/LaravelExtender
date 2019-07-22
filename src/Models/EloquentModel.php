@@ -73,8 +73,9 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
     if (method_exists($this, $method)) {
       return call_user_func_array([$this, $method], $parameters);
     }
-    if (method_exists($this->_eloquent(), $method)) {
-      return call_user_func_array([$this->_eloquent(), $method], $parameters);
+
+    if (method_exists($this->eloquent(), $method)) {
+      return call_user_func_array([$this->eloquent(), $method], $parameters);
     }
 
     /**
@@ -106,7 +107,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
     $possibleEntityNameLowercase = ltrim(strtolower(preg_replace('/[A-Z]([A-Z](?![a-z]))*/', '_$0', $possibleEntityName)), '_');
 
     if (array_key_exists($possibleEntityNameLowercase, $this->relatedModelMapper)) {
-      $relationship = $this->_eloquent()->{lcfirst($possibleEntityName)}();
+      $relationship = $this->eloquent()->{lcfirst($possibleEntityName)}();
 
       if ($relationship instanceof BelongsTo) {
         if ('get' === $accessorType || 'load' === $accessorType || $maybeId) {
@@ -134,7 +135,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
      * =====
      */
 
-    throw new MethodNotFound($method, [$this, $this->_eloquent()]);
+    throw new MethodNotFound($method, [$this, $this->eloquent()]);
   }
 
   /**
@@ -153,7 +154,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
    * @return Collection
    */
   public function queryAll() {
-    $entities = $this->_eloquent()->all();
+    $entities = $this->eloquent()->all();
     $collection = $this->collection();
 
     foreach($entities as $entity) {
@@ -227,7 +228,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
    * @return $this
    */
   public function create() {
-    $model = $this->_eloquent();
+    $model = $this->eloquent();
 
     $model->forceFill($this->rawFieldsAsArray());
 
@@ -237,7 +238,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
   }
 
   public function save() {
-    $model = $this->_eloquent();
+    $model = $this->eloquent();
 
     $model->forceFill($this->rawFieldsAsArray());
     $model->exists = true;
@@ -246,7 +247,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
   }
 
   public function delete() {
-    $model = $this->_eloquent();
+    $model = $this->eloquent();
 
     $model->setAttribute('id', $this->getId());
     $model->exists = true;
@@ -255,7 +256,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
   }
 
   public function forceDelete() {
-    $model = $this->_eloquent();
+    $model = $this->eloquent();
 
     $model->setAttribute('id', $this->getId());
     $model->exists = true;
@@ -414,8 +415,9 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
    * @return Model
    */
   protected function buildQuery(QueryStructContract $parameters) {
-    $queryableModel        = $this->_eloquent();
+    $queryableModel        = $parameters->getEloquent();
     $whereParameters       = $parameters->getWhere();
+    $joinParameters        = $parameters->getJoins();
     $withParameters        = $parameters->getWith();
     $withTrashedParameters = [];
     $orderByParameters     = $parameters->getOrderBy();
@@ -480,6 +482,14 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
       $queryableModel = $queryableModel->with($withParameters);
     }
 
+    if (!empty($joinParameters)) {
+      foreach($joinParameters as $key=>$parameter) {
+        $joinMethod = $parameter['type'] ?? 'inner';
+        
+        $queryableModel->join($key, $parameter['table_2_id'], $parameter['operator'], $parameter['table_1_id'], $joinMethod);
+      }
+    }
+
     if (!empty($orderByParameters)) {
       $queryableModel = $queryableModel->orderBy($orderByParameters['field'], $orderByParameters['order']);
     }
@@ -498,8 +508,16 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
   /**
    * @return Model
    */
-  protected function _eloquent(): Model {
+  public function eloquent(): Model {
     return app($this->eloquentModel);
+  }
+
+  /**
+   * @return Model
+   * @DEPRECATED
+   */
+  protected function _eloquent(): Model {
+    return $this->eloquent();
   }
 
   /**
@@ -540,7 +558,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
 
     return $value;
   }
-
+  
   /**
    * @return SingletonServiceProvider
    * @throws Exception
