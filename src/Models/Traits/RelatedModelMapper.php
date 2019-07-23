@@ -228,15 +228,10 @@ trait RelatedModelMapper {
    * @throws MethodNotFound
    */
   public function loadOwnerEntity(EloquentModel $entity) {
-    $className             = get_class($entity);
-    $entityClassName       = (new ReflectionClass($entity))->getShortName();
-    $entityGetter          = "get$entityClassName";
-    $entitySetter          = "set$entityClassName";
-    $whereThisEntitySetter = "setWhere" . (new ReflectionClass($entity))->getShortName();
-
-    if (!method_exists($this->serviceProvider()->singleStruct(), $whereThisEntitySetter)) {
-      throw new MethodNotFound($whereThisEntitySetter, [$this->serviceProvider()->singleStruct()]);
-    }
+    $className       = get_class($entity);
+    $entityClassName = (new ReflectionClass($entity))->getShortName();
+    $entityGetter    = "get$entityClassName";
+    $entitySetter    = "set$entityClassName";
 
     $this->loadedEntities[$className] = true;
 
@@ -244,7 +239,7 @@ trait RelatedModelMapper {
      * SELECT $entity record that has an association to $this
      */
     $loadedEntity = $entity->serviceProvider()->single(
-      $this->serviceProvider()->singleStruct()->setWhereId($this->$entityGetter()->getId())
+      $entity->serviceProvider()->singleStruct()->setWhereId($this->$entityGetter()->getId())
     );
 
     return $this->$entitySetter($loadedEntity);
