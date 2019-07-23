@@ -284,7 +284,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
         if (isset($model->{$field})) {
           $value = $this->castToParameterType([$this, $setter], $model->{$field});
 
-          if (NULL !== $value) {
+          if (NULL !== $value && !$value instanceof Model) {
             $this->{$setter}($value);
           }
         }
