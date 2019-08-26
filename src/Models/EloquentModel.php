@@ -124,6 +124,8 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
       }  elseif ($relationship instanceof HasMany) {
         if ('get' === $accessorType || 'load' === $accessorType) {
           $parameters = array_prepend($parameters, new $this->relatedModelMapper[$possibleEntityNameLowercase]);
+        } elseif ('set' === $accessorType) {
+          $parameters[0] = (new $this->relatedModelMapper[$possibleEntityNameLowercase])->collection($parameters[0]);
         }
 
         return call_user_func_array([$this, "{$accessorType}HasEntities"], $parameters);
