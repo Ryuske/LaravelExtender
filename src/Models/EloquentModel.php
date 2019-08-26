@@ -125,7 +125,14 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
         if ('get' === $accessorType || 'load' === $accessorType) {
           $parameters = array_prepend($parameters, new $this->relatedModelMapper[$possibleEntityNameLowercase]);
         } elseif ('set' === $accessorType) {
-          $parameters[0] = (new $this->relatedModelMapper[$possibleEntityNameLowercase])->collection($parameters[0]);
+          $relatedModel  = new $this->relatedModelMapper[$possibleEntityNameLowercase];
+          $parameters[0] = $relatedModel->collection($parameters[0]);
+
+          foreach ($parameters[0] as $index=>$entity) {
+            if ($entity instanceof Model) {
+              $parameters[0]->put($index, $relatedModel->buildFromEloquent($entity));
+            }
+          }
         }
 
         return call_user_func_array([$this, "{$accessorType}HasEntities"], $parameters);
@@ -272,6 +279,8 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
    * @return $this
    */
   public function buildFromEloquent(Model $model, ?QueryStructContract $queryParameters=NULL) {
+    $completedSetters = [];
+
     /**
      * Use Eloquent model properties on the default entity setter methods defined in the fieldMapper.
      * This populates the data on an entity, from the data in an Eloquent model
@@ -283,11 +292,12 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
         /**
          * Call the setter method (->setSomeField) and pass the Eloquent property (->some_field) as the parameter
          */
-        if (isset($model->{$field})) {
+        if (isset($model->{$field}) && !in_array($setter, $completedSetters)) {
           $value = $this->castToParameterType([$this, $setter], $model->{$field});
 
           if (NULL !== $value && !$value instanceof Model) {
             $this->{$setter}($value);
+            $completedSetters[] = $setter;
           }
         }
       } catch (MethodNotFound $exception) {}
@@ -300,12 +310,13 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
     foreach ($this->fieldMapper as $field=>$setter) {
       $setter = "set$setter";
 
-      if (method_exists($this, $setter)) {
+      if (method_exists($this, $setter) && !in_array($setter, $completedSetters)) {
         /**
          * Call the setter method (->setSomeField) and pass the Eloquent property (->some_field) as the parameter
          */
         if (isset($model->{$field}) && !empty($model->{$field})) {
           $this->{$setter}($this->castToParameterType([$this, $setter], $model->{$field}));
+          $completedSetters[] = $setter;
         }
       }
     }
@@ -335,38 +346,42 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
         $formattedModelName = ucwords($modelName);
         $setterMethod       = "set$formattedModelName";
 
-        if ($model->{$modelName} instanceof \Illuminate\Database\Eloquent\Collection) {
-          $getterMethod = "get$formattedModelName";
+        if (!in_array($setter, $completedSetters)) {
+          if ($model->{$modelName} instanceof \Illuminate\Database\Eloquent\Collection) {
+            $getterMethod = "get$formattedModelName";
 
-          if (is_callable([$this, $getterMethod])) {
+            if (is_callable([$this, $getterMethod])) {
+              /**
+               * Get a collection of the related models
+               */
+              $modelInstance = $this->{$getterMethod}();
+            }
+
+            foreach ($model->{$modelName} as $relatedModel) {
+              $modelInstance->push(
+                new $modelFQN($relatedModel)
+              );
+            }
+          } else {
             /**
-             * Get a collection of the related models
+             * Pass the instance of the autoloaded/child entity that is currently set on the given/parent entity.
+             * This makes sure that if data was filled out along the way, it's kept once we finish building the new
+             * model from the Eloquent data
              */
-            $modelInstance = $this->{$getterMethod}();
+            $modelInstance = new $modelFQN($model->{$modelName});
           }
+          /**
+           * Set the ID of the autoloaded/child entity, from the corresponding Eloquent property (->entity_id)
+           */
 
-          foreach ($model->{$modelName} as $relatedModel) {
-            $modelInstance->push(
-              new $modelFQN($relatedModel)
-            );
+          if (is_callable([$this, $setterMethod])) {
+            /**
+             * Set the instance of the autoloaded/child entity that was created above on the given/parent entity
+             */
+            $this->{$setterMethod}($modelInstance);
+
+            $completedSetters[] = $setterMethod;
           }
-        } else {
-          /**
-           * Pass the instance of the autoloaded/child entity that is currently set on the given/parent entity.
-           * This makes sure that if data was filled out along the way, it's kept once we finish building the new
-           * model from the Eloquent data
-           */
-          $modelInstance = new $modelFQN($model->{$modelName});
-        }
-        /**
-         * Set the ID of the autoloaded/child entity, from the corresponding Eloquent property (->entity_id)
-         */
-
-        if (is_callable([$this, $setterMethod])) {
-          /**
-           * Set the instance of the autoloaded/child entity that was created above on the given/parent entity
-           */
-          $this->{$setterMethod}($modelInstance);
         }
       }
     }
@@ -487,7 +502,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
     if (!empty($joinParameters)) {
       foreach($joinParameters as $key=>$parameter) {
         $joinMethod = $parameter['type'] ?? 'inner';
-        
+
         $queryableModel->join($key, $parameter['table_2_id'], $parameter['operator'], $parameter['table_1_id'], $joinMethod);
       }
     }
@@ -560,7 +575,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
 
     return $value;
   }
-  
+
   /**
    * @return SingletonServiceProvider
    * @throws Exception
