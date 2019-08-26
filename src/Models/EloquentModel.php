@@ -130,7 +130,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
 
           foreach ($parameters[0] as $index=>$entity) {
             if ($entity instanceof Model) {
-              $parameters[0]->put($index, $relatedModel->buildFromEloquent($entity));
+              $parameters[0]->put($index, (clone $relatedModel)->buildFromEloquent($entity));
             }
           }
         }
