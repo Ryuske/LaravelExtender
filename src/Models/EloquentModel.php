@@ -346,7 +346,7 @@ abstract class EloquentModel implements ModelAsServiceContract, Arrayable, Jsona
         $formattedModelName = ucwords($modelName);
         $setterMethod       = "set$formattedModelName";
 
-        if (!in_array($setter, $completedSetters)) {
+        if (!in_array($setterMethod, $completedSetters)) {
           if ($model->{$modelName} instanceof \Illuminate\Database\Eloquent\Collection) {
             $getterMethod = "get$formattedModelName";
 
