@@ -5,6 +5,7 @@ use Ryuske\LaravelExtender\Models\Collection;
 use Ryuske\LaravelExtender\Models\EloquentModel;
 use Exception;
 use ReflectionClass;
+use Str;
 
 trait RelatedModelMapper {
   private $loadedEntities = [];
@@ -67,19 +68,21 @@ trait RelatedModelMapper {
    * This is used to load a collection of entities, either eagerly or on-demand
    *
    * @param EloquentModel $entity
+   * @param bool $plural
    * @return $this
    * @throws MethodNotFound
    */
-  public function loadHasEntity(EloquentModel $entity) {
+  public function loadHasEntity(EloquentModel $entity, bool $plural=false) {
     $className             = get_class($entity);
+    $entity                = new $entity;
     $entityClassName       = (new ReflectionClass($entity))->getShortName();
-    $entityGetter          = "get$entityClassName";
-    $entitySetter          = "set$entityClassName";
-    $whereThisEntitySetter = "setWhere" . (new ReflectionClass($entity))->getShortName();
+    $entityGetter          = $plural ? Str::plural("get$entityClassName") : "get$entityClassName";
+    $entitySetter          = $plural ? Str::plural("set$entityClassName") : "set$entityClassName";
+    $whereThisEntitySetter = "setWhere" . (new ReflectionClass($this))->getShortName();
 
-    if ($this->$entityGetter()->isEmpty() && !$this->loadedEntities[$className]) {
-      if (!method_exists($this->serviceProvider()->searchByStruct(), $whereThisEntitySetter)) {
-        throw new MethodNotFound($whereThisEntitySetter, [$this->serviceProvider()->searchByStruct()]);
+    if ($this->$entityGetter()->isEmpty() && !isset($this->loadedEntities[$className])) {
+      if (!method_exists($entity->serviceProvider()->searchByStruct(), $whereThisEntitySetter)) {
+        throw new MethodNotFound($whereThisEntitySetter, [$entity->serviceProvider()->searchByStruct()]);
       }
 
       $this->loadedEntities[$className] = true;
@@ -87,8 +90,8 @@ trait RelatedModelMapper {
       /**
        * SELECT all of the $entity records that have an association to $this
        */
-      $loadedEntity = $this->serviceProvider()->searchBy(
-        $this->serviceProvider()->searchByStruct()->$whereThisEntitySetter($this)
+      $loadedEntity = $entity->serviceProvider()->searchBy(
+        $entity->serviceProvider()->searchByStruct()->$whereThisEntitySetter($this)
       );
 
       return $this->$entitySetter($loadedEntity);
@@ -167,7 +170,7 @@ trait RelatedModelMapper {
    * @throws MethodNotFound
    */
   public function loadHasEntities(EloquentModel $entity) {
-    return $this->loadHasEntity($entity);
+    return $this->loadHasEntity($entity, true);
   }
 
   /**
